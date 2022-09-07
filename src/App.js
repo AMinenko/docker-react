@@ -15,7 +15,7 @@ function App() {
           target="_blank"
           rel="noopener noreferrer"
         >
-          Mornig over there!!!
+          God Mornig over there!!!
         </a>
       </header>
     </div>
