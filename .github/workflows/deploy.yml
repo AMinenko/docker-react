@@ -2,7 +2,7 @@ name: Deploy Frontend to AWS EBS
 on:
   push:
     branches:
-      - main
+      - master
  
 jobs:
   build:
