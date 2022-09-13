@@ -1,4 +1,11 @@
 name: Deploy Frontend to AWS EBS
+env:
+  EB_PACKAGE_S3_BUCKET_NAME : "elasticbeanstalk-eu-central-1-214332176162"
+  EB_APPLICATION_NAME : "Dockernodecubernetes-env"
+  EB_ENVIRONMENT_NAME : "Dockernodecubernetesenv-env"
+  DEPLOY_PACKAGE_NAME : "dockerized_AMinenko-docker-react_${{ github.sha }}.zip"
+  AWS_REGION_NAME : "eu-central-1"
+
 on:
   push:
     branches:
@@ -8,23 +15,36 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Git clone repo1
+      - name: Git clone repo
         uses: actions/checkout@v2
       - run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-      - run: docker build -t cygnetops/react-test -f Dockerfile.dev .
-      - run: docker run -e CI=true cygnetops/react-test npm test
+      - run: docker build -t mranmi/frontend -f Dockerfile.dev .
  
       - name: Generate deployment package
-        run: zip -r deploy.zip . -x '*.git*'
+        run: zip -r ${{env.DEPLOY_PACKAGE_NAME}} ./ -x *.git*
  
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+          aws-region: ${{ env.AWS_REGION_NAME }}
+      
+      - name: Copy deployment package to s3 bucket
+        run: aws s3 cp ${{ env.DEPLOY_PACKAGE_NAME }} s3://${{ env.EB_PACKAGE_S3_BUCKET_NAME }}/
+      
+      
+      - name: Print Happy message for build step finish
+        run: echo "Builld and copy pipelline is succesfullly finished"
+      
       - name: Deploy to EB
         uses: einaregilsson/beanstalk-deploy@v18
         with:
           aws_access_key: ${{ secrets.AWS_ACCESS_KEY }}
           aws_secret_key: ${{ secrets.AWS_SECRET_KEY }}
-          application_name: docker-node-cubernetes
-          environment_name: Dockernodecubernetes-env
-          existing_bucket_name: elasticbeanstalk-eu-central-1-214332176162
-          region: eu-central-1
+          application_name: ${{ env.EB_APPLICATION_NAME }}
+          environment_name: ${{ env.EB_ENVIRONMENT_NAME }}
+          existing_bucket_name: ${{ env.EB_PACKAGE_S3_BUCKET_NAME }}
+          region: ${{ env.AWS_REGION_NAME }}
           version_label: ${{ github.sha }}
-          deployment_package: deploy.zip
+          deployment_package: ${{ env.DEPLOY_PACKAGE_NAME }}
